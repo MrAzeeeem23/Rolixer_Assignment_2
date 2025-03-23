@@ -1,109 +1,184 @@
 import User from "../models/User.js";
 
-const generateTokens = async(userId) => {
+const generateTokens = async (userId) => {
     try {
-        const user = await User.findOne({where: userId});
-        const accessToken = user.generateAccessToken()
-        const refreshTOken = user.refreshToken()
+        const user = await User.findOne({ where: { id: userId } });
 
-        user.refreshT = refreshTOken;
-        await user.save()
+        if (!user) {
+            throw new Error("User not found");
+        }
 
-        return {accessToken, refreshTOken}
+        const accessToken = user.generateAccessToken();
+        const refreshToken = user.refreshToken(); 
 
+        user.refreshT = refreshToken;
+        await user.save();
+
+        return { accessToken, refreshToken };
     } catch (error) {
-        throw new Error("Somthing went wrong while creating tokens")
+        throw new Error("Something went wrong while creating tokens");
     }
-}
+};
 
-const RegisterUser = async(req, res) => {
+const RegisterUser = async (req, res) => {
     try {
-        const {name, email, password, role} = req.body;
+        const { name, email, password, role } = req.body;
+
+        const existingUser = await User.findOne({ where: { email } });
+        if (existingUser) {
+            throw new Error("Email already exists");
+        }
 
         const createUser = await User.create({
             name,
             email,
             password,
-            role
-        })
+            role,
+        });
+
         res.status(201).json(createUser);
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
-}
+};
 
-const loginUser = async(req, res) => {
+const loginUser = async (req, res) => {
     try {
-        const {email, password} = req.body;
+        const { email, password } = req.body;
 
-        if(!email || !password){
-            throw new Error("fill all input areas");
+        if (!email || !password) {
+            throw new Error("Fill all input fields");
         }
 
-        const user = await User.findOne({where: {email}})
-        
+        const user = await User.findOne({ where: { email } });
 
-        if(!user){
-            throw new Error("User Not found")
+        if (!user) {
+            throw new Error("User not found");
         }
 
-        const isPasswordValid = await user.isPasswordCorrect(password)
+        const isPasswordValid = await user.isPasswordCorrect(password);
 
-        if(!isPasswordValid){
-            throw new Error("Invalid Password")
+        if (!isPasswordValid) {
+            throw new Error("Invalid password");
         }
 
-        const {accessToken, refreshTOken} = await generateTokens(user.id)
-
-        const loggedInUser = await User.findOne({ where: user.id})
+        const { accessToken, refreshToken } = await generateTokens(user.id);
 
         const cookieOptions = {
             httpOnly: true,
-            secure: true
-        }
+            secure: true,
+            sameSite: "Strict",
+        };
 
         res.status(200)
             .cookie("accesstoken", accessToken, cookieOptions)
-            .cookie("refresh", refreshTOken, cookieOptions)
-            .json(
-                loggedInUser.toJSON()
-            )
-
+            .cookie("refresh", refreshToken, cookieOptions)
+            .json(user.toJSON());
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
+};
+
+const updatePassword = async (req, res) => {
+    try {
+        const {currentPassword, updatePassword} = req.body;
+
+        const user = await User.findByPk(req.id)
+
+        const isPasswordValid = await user.isPasswordCorrect(currentPassword)
+
+        if(!isPasswordValid){
+            throw new Error("Invalid current-Password");
+        }
+
+        await User.update(
+            { password: updatePassword},
+            { where: {
+                id: req.id
+            }}
+        )
+        
+        res.send({ message: "Password updated successfully!" });
+    } catch (error) {
+        res.status(500).send({
+            message: error.message || "Some error occurred while updating password."
+        });
+    }
 }
 
-const logoutUser = async(req, res) => {
+const logoutUser = async (req, res) => {
     try {
-        const user = await User.findByPk(req.user.id)
+        const user = await User.findByPk(req.user.id);
 
-        if(!user) {
-            throw new Error("User not Found")
+        if (!user) {
+            throw new Error("User not found");
         }
 
-        user.set({
-            refreshT: 1
-        })
-
-        const options = {
-            httpOnly: true,
-            secure: true
-        }
+        user.refreshT = null; 
+        await user.save();
 
         res.status(200)
-        .cookie("accesstoken", options)
-        .cookie("refresh", options)
-        .json(
-            {}
-        )
+            .clearCookie("accesstoken")
+            .clearCookie("refresh")
+            .json({ message: "Logged out successfully" });
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
-}
+};
+
+const getAllUsers = async (req, res) => {
+    try {
+        const users = await User.findAll();
+        res.status(200).json(users);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+const getUserById = async (req, res) => {
+    try {
+        const user = await User.findByPk(req.params.id);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        res.status(200).json(user);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+const updateUser = async (req, res) => {
+    try {
+        const { name, email, role } = req.body;
+
+        const user = await User.findByPk(req.params.id);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        await user.update({ name, email, role });
+        res.status(200).json({ message: "User updated", user });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+const deleteUser = async (req, res) => {
+    try {
+        const user = await User.findByPk(req.params.id);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        await user.destroy();
+        res.status(200).json({ message: "User deleted" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
 
 export {
     RegisterUser,
     loginUser,
-    logoutUser
-}
+    logoutUser,
+    updatePassword,
+    getAllUsers,
+    getUserById,
+    updateUser,
+    deleteUser,
+};

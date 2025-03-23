@@ -29,39 +29,28 @@ const verfyJWT = async(req, res, next) => {
 
 const authorizedAdmin = async (req, res, next) => {
     try {
-        const Admin = req.user.role || req.role
 
-        if(!Admin == "admin"){
-            return res.status(401).json({
-                message: "Not Authorized as admin"
-            })
+        if(req.user && req.user.role === "admin"){
+            next()
         }
 
-        next()
     } catch (error) {
-        res.status(403).json({ message: 'Invalid Admin' });
+        res.status(403).json({ message: "Not Authorized as admin" });
     }
 }
 
-const authorizedRtoreOwner = async (req, res, next) => {
+const authorizedStoreOwner = async (req, res, next) => {
     try {
-        const store_owner = req.user.role || req.role
-
-        if(!store_owner == "store_owner"){
-            return res.status(401).json({
-                message: "Not Authorized as store_owner"
-            })
+        if(req.user && req.user.role === "store_owner"){
+            next();
         }
-
-        next()
-
     } catch (error) {
-        res.status(403).json({ message: 'Invalid store_owner' });
+        res.status(403).json({ message: "Not Authorized as store_owner" });
     }
 }
 
 export {
     verfyJWT,
     authorizedAdmin,
-    authorizedRtoreOwner
+    authorizedStoreOwner
 }

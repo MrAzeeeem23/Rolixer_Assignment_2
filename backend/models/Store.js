@@ -1,4 +1,4 @@
-import sequelize from "../database/db";
+import sequelize from "../database/db.js";
 import { DataTypes } from "sequelize";
 
 const Store = sequelize.define("Store", {
