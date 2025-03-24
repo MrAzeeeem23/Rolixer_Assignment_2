@@ -126,6 +126,25 @@ const logoutUser = async (req, res) => {
     }
 };
 
+const getUserDetails = async (req, res) => {
+    try {
+        const user = req.user; // Assuming user is added to req in authentication middleware
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+
 const getAllUsers = async (req, res) => {
     try {
         const users = await User.findAll();
@@ -160,6 +179,23 @@ const updateUser = async (req, res) => {
     }
 };
 
+const getFilteredUsers = async (req, res) => {
+    try {
+        const { name, email, role } = req.query;
+
+        const filterConditions = {};
+        if (name) filterConditions.name = name;
+        if (email) filterConditions.email = email;
+        if (role) filterConditions.role = role;
+
+        const users = await User.findAll({ where: filterConditions });
+        res.status(200).json(users);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+
 const deleteUser = async (req, res) => {
     try {
         const user = await User.findByPk(req.params.id);
@@ -179,6 +215,8 @@ export {
     updatePassword,
     getAllUsers,
     getUserById,
+    getUserDetails,
     updateUser,
     deleteUser,
+    getFilteredUsers
 };

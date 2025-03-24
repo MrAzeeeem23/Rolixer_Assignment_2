@@ -1,11 +1,11 @@
-import Rating from "../models/Rating.js";
+import Rating from "../models/Ratings.js";
 import Store from "../models/Store.js";
 import User from "../models/User.js";
 
 const submitRating = async (req, res) => {
     try {
         const { storeId, rating } = req.body;
-        const userId = req.user.id; 
+        const userId = req.user.id;
 
         if (rating < 1 || rating > 5) {
             throw new Error("Rating must be between 1 and 5");
@@ -24,6 +24,7 @@ const submitRating = async (req, res) => {
 
         const newRating = await Rating.create({ userId, storeId, rating });
 
+        // Update overall store rating
         const ratings = await Rating.findAll({ where: { storeId } });
         const avgRating = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
 
@@ -35,6 +36,8 @@ const submitRating = async (req, res) => {
         res.status(400).json({ error: error.message });
     }
 };
+
+
 const updateRating = async (req, res) => {
     try {
         const { rating } = req.body;
@@ -65,6 +68,7 @@ const updateRating = async (req, res) => {
         res.status(400).json({ error: error.message });
     }
 };
+
 
 const getStoreRatings = async (req, res) => {
     try {
@@ -126,10 +130,53 @@ const deleteRating = async (req, res) => {
     }
 };
 
+const getRatedStores = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const ratedStores = await Store.findAll({
+            include: [
+                {
+                    model: Rating,
+                    where: { userId },
+                    attributes: ["rating"],
+                },
+            ],
+        });
+
+        res.status(200).json(ratedStores);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+const getUnratedStores = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const unratedStores = await Store.findAll({
+            where: {
+                id: {
+                    [Op.notIn]: sequelize.literal(
+                        `(SELECT storeId FROM Ratings WHERE userId = '${userId}')`
+                    ),
+                },
+            },
+        });
+
+        res.status(200).json(unratedStores);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+
 export {
     submitRating,
     updateRating,
     getStoreRatings,
     getUserRating,
-    deleteRating
+    deleteRating,
+    getRatedStores,
+    getUnratedStores
 };

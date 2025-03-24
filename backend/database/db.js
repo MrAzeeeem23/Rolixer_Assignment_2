@@ -4,9 +4,9 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 const sequelize = new Sequelize(
-    "rolixer", // db-name
-    "postgres", // db-username
-    "azeemkhan", // db-pass
+    process.env.PG_DATABASE_NAME, // db-name
+    process.env.PG_USERNAME, // db-username
+    process.env.PG_USERNAME, // db-pass
     {
         host: "localhost",
         dialect: "postgres",

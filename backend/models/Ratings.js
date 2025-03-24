@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
-import sequelize from "../database/db";
-import User from "./User";
-import Store from "./Store";
+import sequelize from "../database/db.js";
+import User from "./User.js";
+import Store from "./Store.js";
 
 const Rating = sequelize.define("Rating", {
     id: {
@@ -10,7 +10,7 @@ const Rating = sequelize.define("Rating", {
         primaryKey: true
     },
     userId: {
-        type: DataTypes.UUID,
+        type: DataTypes.INTEGER,
         allowNull: false,
         references: {
             model: User,
@@ -19,7 +19,7 @@ const Rating = sequelize.define("Rating", {
         onDelete: "CASCADE"
     },
     storeId: {
-        type: DataTypes.UUID,
+        type: DataTypes.INTEGER,
         allowNull: false,
         references: {
             model: Store,

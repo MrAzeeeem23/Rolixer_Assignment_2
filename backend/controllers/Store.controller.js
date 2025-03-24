@@ -25,6 +25,24 @@ const getAllStores = async (req, res) => {
   }
 };
 
+
+const getFilteredStores = async (req, res) => {
+  try {
+    const { name, email, address } = req.query;
+
+    const filterConditions = {};
+    if (name) filterConditions.name = name;
+    if (email) filterConditions.email = email;
+    if (address) filterConditions.address = address;
+
+    const stores = await Store.findAll({ where: filterConditions });
+    res.status(200).json(stores);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
 const getStoreById = async (req, res) => {
   try {
     const store = await Store.findByPk(req.params.id);
@@ -62,4 +80,4 @@ const deleteStoreById = async (req, res) => {
   }
 };
 
-export { createStore, getAllStores, getStoreById, updateStore, deleteStoreById };
+export { createStore, getAllStores, getStoreById, updateStore, deleteStoreById, getFilteredStores };
